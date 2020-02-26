@@ -1,10 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage,signal
-from math import sqrt,pi,degrees,atan
 from operator import itemgetter
 import cv2
-import time
+
 
 #Computes the C matrix - [[Eex,Eexy],[Eexy],[Eey]]
 #Takes in the gradient matrices ex (x gradient squared), ey (y gradient squared), exey (product of x and y gradients),
@@ -82,13 +81,11 @@ def detect_corners(img,sigma=1,threshold=0.1,n=4,filter_type="linear"):
 	#Determine number of pixels and offset for neighbourhood
 	size = 2*n +1
 	offset=size//2
-	row_grids = (len(img) - offset * 2) // size
-	column_grids = (len(img[0]) - offset * 2) // size
 
 	#Gaussian smoothing
 	smooth_img = ndimage.gaussian_filter(img,sigma)
 
-	#Obtain values for c matrix
+	#Obtain values necessary to calculate c matrix
 	jx,jy = np.gradient(smooth_img)
 	ex = jx**2
 	ey = jy**2
@@ -110,5 +107,11 @@ def detect_corners(img,sigma=1,threshold=0.1,n=4,filter_type="linear"):
 if __name__ == "__main__":
 	img = cv2.imread("CheckerBoard.jpg",0)
 	detect_corners(img)
+	# detect_corners(img,sigma=2)
+	# detect_corners(img,sigma=3)
+	# detect_corners(img,threshold=0.4)
+	# detect_corners(img,threshold=0.6)
+	# detect_corners(img,n=1)
+	# detect_corners(img,n=9)
 	img1 = cv2.imread("Building1.jpg",0)
 	detect_corners(img1)

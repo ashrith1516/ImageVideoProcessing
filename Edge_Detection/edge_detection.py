@@ -5,38 +5,6 @@ from math import sqrt,pi,degrees,atan
 import cv2
 
 
-
-# Gaussian function
-# Takes in the step, mean and standard deviation as parameters
-def gaussian(x, mu, sig):
-    return 1./(sqrt(2.*pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
-
-# Function to create a gaussian kernel
-# Size of the kernel is determined by the standard deviation value - Size = 5 * standard deviation
-# Takes in the standard deviation as parameter
-def gaussian_kernel(sigma):
-	size = int(5 * sigma)
-	size = size+1 if size%2 == 0 else size
-	limit = size//2
-	#The range we pick values from must be equal to 5 times sigma
-	gaus_range = [x for x in range(-limit,limit+1)]
-	kernel = [gaussian(x,0,sigma) for x in gaus_range]
-	normalized_kernel = [x/kernel[limit] for x in kernel]
-	total = sum(normalized_kernel)
-	gauss_kernel = [x/total for x in normalized_kernel]
-
-	return np.array(gauss_kernel).reshape(1,size)
-
-# Applies a gaussian filter to an image and returns the filtered image
-# Takes in standard deviation and input image as parameters
-def gaussian_filter(img,sigma):
-	kernel = gaussian_kernel(sigma)
-	#print(kernel)
-	res = ndimage.convolve(img,kernel)
-	kernel = np.transpose(kernel)
-	res = ndimage.convolve(img,kernel)
-	return res
-
 #Obtains the neigboring matrix element position based on the edge normal value
 #Takes in the edge normal value in degrees and outputs the neigboring pixel positions
 def positions(num):
@@ -53,7 +21,7 @@ def positions(num):
 #Takes in the image and sigma value for smoothing as parameters and returns edge strength and orientation images
 def canny_enhancer(img, sigma):
 	#Gaussian smoothing
-	smooth_img = gaussian_filter(img,sigma)
+	smooth_img = ndimage.gaussian_filter(img,sigma)
 	kernel_jx = [[-1,0,1]]
 	kernel_jy = [[-1],[0],[1]]
 	#Gradients on x and y co-ordinates

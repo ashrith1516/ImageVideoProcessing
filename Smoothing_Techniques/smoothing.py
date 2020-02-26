@@ -107,7 +107,7 @@ def display_output(img1,img2,img3,img4,filter,msg):
 
     
 
-#Tests
+#Test cases
 if __name__ == "__main__":
 	img1 = io.imread("NoisyImage1.jpg")
 	img2 = io.imread('NoisyImage2.jpg')

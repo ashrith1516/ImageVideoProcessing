@@ -6,6 +6,7 @@ from math import hypot,fabs,inf
 import cv2
 
 points = []
+corners = []
 avg_dist = 0
 
 def img_strength(img,sigma):
@@ -60,6 +61,9 @@ def display_contour(img):
 	plt.imshow(img)
 	for point in points:
 		plt.scatter(point[1],point[0],s=2,c='r')
+	
+	for point in corners:
+		plt.scatter(point[1],point[0],s=2,c='b')
 	plt.show()
 
 
@@ -135,11 +139,13 @@ def maximum_curvature(ind):
 	return (u1_norm[0]-u2_norm[0])**2 + (u1_norm[1]-u2_norm[1])**2	
 
 
-def greedy_contours(img,strength):
+def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold):
 	global points
-	alpha = gamma = 1
+	
 	num_points = len(points)
-	beta = [1]*num_points
+	alpha = [alpha_val]*num_points
+	beta = [beta_val]*num_points
+	gamma = [gamma_val]*num_points
 	curvature = [0]*num_points
 	count = 0
 	while True:
@@ -155,7 +161,7 @@ def greedy_contours(img,strength):
 			cur_energy = 0
 			#print(beta[i])
 			for j in range(len(neighbours)):
-				energy_j = alpha * neighbours_continuity[j]/max(neighbours_continuity) + beta[i] * neighbours_curvature[j]/max(neighbours_curvature) + gamma * neighbours_image[j]
+				energy_j = alpha[i] * neighbours_continuity[j]/max(neighbours_continuity) + beta[i] * neighbours_curvature[j]/max(neighbours_curvature) + gamma[i] * neighbours_image[j]
 				if neighbours[j] == cur_point:
 					cur_energy = energy_j
 				if energy_j < min_energy:
@@ -166,7 +172,7 @@ def greedy_contours(img,strength):
 			if min_point != cur_point and min_energy != cur_energy:
 				points[i] = min_point
 				ptsmoved += 1
-		print(ptsmoved)
+		print("Points moved - " + str(ptsmoved))
 		count += 1
 		if count %20 == 0:
 			display_contour(img)
@@ -178,22 +184,23 @@ def greedy_contours(img,strength):
 			prev = curvature[(i-1)%num_points]
 			cur = curvature[i]
 			nxt = curvature[(i+1)%num_points]
-			if cur > prev and cur > nxt and cur > 0.3 and strength[points[i][0],points[i][1]] > 10:
+			if cur > prev and cur > nxt and cur > curv_threshold and strength[points[i][0],points[i][1]] > strength_threshold:
 				beta[i] = 0
+				corners.append(points[i])
 
-		if ptsmoved < 0.1 * num_points:
+		if ptsmoved < pts_threshold * num_points:
 			break
 		
-
-
-if __name__ == "__main__":
-	img = cv2.imread("Images1through8/image3.jpg",0)
-	strength = img_strength(img,3)
+def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,curv_threshold=0.3,strength_threshold=10,pts_threshold=0.1):
+	img = cv2.imread(img,0)
+	strength = img_strength(img,sigma)
 
 	get_points(img)
 	interpolate()
 
-	greedy_contours(img,strength)
+	greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold)
 	print("Complete!")
 	display_contour(img)
-	
+
+if __name__ == "__main__":
+	active_contours("Images1through8/image3.jpg")

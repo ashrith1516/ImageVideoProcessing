@@ -7,10 +7,20 @@ import os
 import sys
 import cv2
 
+"""
+Global variables
+points - Stores all contour points
+corners - Stores corner points of contour
+avg_dist - Average distance between contour points
+"""
 points = []
 corners = []
 avg_dist = 0
 
+"""
+Performs a gaussian smoothing and returns the image strength/magnitude
+Parameters - Input image, sigma for gaussian smoothing
+"""
 def img_strength(img,sigma):
 	res = ndimage.gaussian_filter(img.astype(float),3)
 	jx,jy = np.gradient(res)
@@ -19,7 +29,9 @@ def img_strength(img,sigma):
 	img_str = np.sqrt(np.square(jx) + np.square(jy))
 	return img_str
 
-
+"""
+Handles click event on the image and records points clicked
+"""
 def onclick(event):
     global ix, iy
     ix, iy = int(event.xdata), int(event.ydata)
@@ -28,6 +40,10 @@ def onclick(event):
     global points
     points.append((iy, ix))
 
+"""
+Obtains initial points for contour
+Parameters - Input image on which contour will be placed
+"""
 def get_points(image):
 	fig = plt.figure('ACTIVE CONTOURS')
 	plt.gray()
@@ -37,6 +53,9 @@ def get_points(image):
 	plt.show()
 	fig.canvas.mpl_disconnect(cid)
 
+"""
+Fills the gap between input contour points by placing points 5px distance apart along the line
+"""
 def interpolate():
 	temp_points = []
 	global points
@@ -56,7 +75,10 @@ def interpolate():
 	points = temp_points
 
 
-
+"""
+Displays the input image with contour points overlayed on it. Contour points are red and corner points are blue
+Parameters - Input image on which contour is placed
+"""
 def display_contour(img):
 	global points
 	plt.gray()
@@ -70,6 +92,9 @@ def display_contour(img):
 	plt.show()
 
 
+"""
+Computes average distance between contour points
+"""
 def average_dist():
 	d = 0
 	global points
@@ -80,6 +105,10 @@ def average_dist():
 		d += hypot(nxt_point[0]-point[0],nxt_point[1]-point[1])
 	avg_dist = d/num_points
 
+"""
+Obtains neighbouring points around a pixel/point
+Parameters - center point of neighbourhood, neighbourhood size
+"""
 def get_neighbours(index,neigh_size):
 	global points
 	offset = neigh_size//2
@@ -88,6 +117,10 @@ def get_neighbours(index,neigh_size):
 	
 	return neighbours
 
+"""
+Calculates the continuity term between neighbouring points and previous and next contour points
+Parameters - index of the current contour point, neighbours of the current contour point
+"""
 def continuity_term(index,neighbours):
 	global points
 	global avg_dist
@@ -98,6 +131,10 @@ def continuity_term(index,neighbours):
 	
 	return neighbours_continuity
 
+"""
+Calculates the curvature term between neighbouring points and previous and next contour points
+Parameters - index of the current contour point, neighbours of the current contour point
+"""
 def curvature_term(index,neighbours):
 	global points
 	num_points = len(points)
@@ -112,6 +149,11 @@ def curvature_term(index,neighbours):
 	
 	return neighbours_curvature
 
+
+"""
+Calculates the strength term of the neighbouring points
+Parameters - strength/magnitude matrix, neighbours of the current contour point
+"""
 def image_term(strength,neighbours):
 	
 	neighbours_strength = list(strength[nei[0],nei[1]] for nei in neighbours)
@@ -124,6 +166,10 @@ def image_term(strength,neighbours):
 	
 	return neighbours_image
 
+"""
+Function to detect maximum curvature between 3 points in the contour thereby detecting corners
+Parameters - Index of the current contour point
+"""
 def maximum_curvature(ind):
 	global points
 	num_points = len(points)
@@ -143,6 +189,12 @@ def maximum_curvature(ind):
 	return (u1_norm[0]-u2_norm[0])**2 + (u1_norm[1]-u2_norm[1])**2	
 
 
+"""
+Greedy algorithm to detect active contours
+Parameters - Input image,strength matrix, alpha value for continuity, beta value for curvature, gamma value for strength,
+			 size of neighbourhood, threshold for detecting corner curvature, strength threshold for corner, points threshold
+			 for minimum number of contour points to move for iterating
+"""
 def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold):
 	global points
 	
@@ -180,6 +232,7 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 				ptsmoved += 1
 		
 		count += 1
+		#Display contours only once in 20 iterations
 		if count %20 == 0:
 			display_contour(img)
 
@@ -194,13 +247,22 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 				beta[i] = 0
 				corners.append(points[i])
 		
+		#If number of points moved doesn't change, we need to stop iterating
 		if prev_ptsmoved == ptsmoved:
 			repeat += 1
 		
 		prev_ptsmoved = ptsmoved
 		if ptsmoved < pts_threshold * num_points or repeat >= 40:
 			break
-		
+
+
+"""
+Detects if input is file or folder and runs the greedy_contours function on it
+If input is a folder, the algorithm is run on all the files inside the folder assuming the files are images
+Parameters - Input image,sigma for gaussian smoothing, alpha value for continuity, beta value for curvature, gamma value for strength,
+			 size of neighbourhood, threshold for detecting corner curvature, strength threshold for corner, points threshold
+			 for minimum number of contour points to move for iterating
+"""
 def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,curv_threshold=0.3,strength_threshold=10,pts_threshold=0.1):
 	filepath = sys.path[0] + "\\" + img
 	if os.path.isdir(filepath):
@@ -230,6 +292,6 @@ def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,
 		display_contour(image)
 
 
-
+#TEST CASES
 if __name__ == "__main__":
 	active_contours("Images1through8/image1.jpg")

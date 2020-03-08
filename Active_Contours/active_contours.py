@@ -150,6 +150,8 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 	gamma = [gamma_val]*num_points
 	curvature = [0]*num_points
 	count = 0
+	prev_ptsmoved = 0
+	repeat = False
 	while True:
 		ptsmoved = 0
 		for i in range(num_points):
@@ -161,7 +163,6 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 			neighbours_image = image_term(strength,neighbours)
 			cur_point = points[i]
 			cur_energy = 0
-
 			#print(beta[i])
 			for j in range(len(neighbours)):
 				energy_j = alpha[i] * neighbours_continuity[j]/max(neighbours_continuity) + beta[i] * neighbours_curvature[j]/max(neighbours_curvature) + gamma[i] * neighbours_image[j]
@@ -178,6 +179,10 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 		print("Points moved - " + str(ptsmoved))
 		count += 1
 		if count %20 == 0:
+			if prev_ptsmoved == ptsmoved:
+				repeat = True
+			else:
+				prev_ptsmoved = ptsmoved
 			display_contour(img)
 
 		for i in range(num_points):
@@ -191,14 +196,14 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 				beta[i] = 0
 				corners.append(points[i])
 
-		if ptsmoved < pts_threshold * num_points:
+		if ptsmoved < pts_threshold * num_points or repeat:
 			break
 		
 def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,curv_threshold=0.3,strength_threshold=10,pts_threshold=0.1):
 	filepath = sys.path[0] + "\\" + img
 	if os.path.isdir(filepath):
 		files = os.listdir(filepath)
-		images = [(filepath + "\\" + temp) for temp in files]
+		images = [(filepath + "\\" + temp) for temp in files if temp[-3:] == "jpg" or temp[-3:] == "png"]
 		print(images)
 		for i in range(len(images)):
 			global corners
@@ -225,4 +230,4 @@ def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,
 
 
 if __name__ == "__main__":
-	active_contours("Images1through8/image1.jpg")
+	active_contours("Sequence2")

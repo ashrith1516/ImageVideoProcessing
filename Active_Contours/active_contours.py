@@ -8,17 +8,19 @@ import cv2
 points = []
 avg_dist = 0
 
-def img_strength(img):
-
-	jx,jy = np.gradient(img)
-	img_str = np.hypot(jx,jy)
+def img_strength(img,sigma):
+	res = ndimage.gaussian_filter(img.astype(float),3)
+	jx,jy = np.gradient(res)
+	#print(jx)
+	#print(jy)
+	img_str = np.sqrt(np.square(jx) + np.square(jy))
 	return img_str
 
 
 def onclick(event):
     global ix, iy
     ix, iy = int(event.xdata), int(event.ydata)
-    # print(ix, iy)
+    # #print(ix, iy)
     plt.scatter([ix], [iy], s = 2, c='r')
     plt.draw()
     global points
@@ -39,12 +41,12 @@ def interpolate():
 	for ind,point in enumerate(points):
 		temp_points.append(point)
 		nxt_point = points[(ind+1)%num_points]
-		distance = int(hypot(nxt_point[0]-point[0],nxt_point[1]-point[1]))
+		distance = hypot(nxt_point[0]-point[0],nxt_point[1]-point[1])
 		if distance > 5:
-			gaps = distance//5
+			gaps = int(distance/5)
 			gapx = (nxt_point[0]-point[0])//(gaps+1)
 			gapy = (nxt_point[1]-point[1])//(gaps+1)
-			for i in range(1,gaps+1):
+			for i in range(gaps):
 				x = point[0] + gapx*i
 				y = point[1] + gapy*i
 				temp_points.append((x,y))
@@ -75,16 +77,17 @@ def get_neighbours(index):
 	global points
 	center = points[index]
 	neighbours = [(center[0]+x,center[1]+y) for x in range(-1,2) for y in range(-1,2)]
-	print(index)
-	print(neighbours)
+	#print(points[index])
 	return neighbours
 
 def continuity_term(index,neighbours):
 	global points
 	global avg_dist
+	#print(avg_dist)
 	num_points = len(points)
 	prev = points[(index-1)%num_points]
 	neighbours_continuity = [fabs(avg_dist-hypot(nei[0]-prev[0],nei[1]-prev[1])) for nei in neighbours]
+	#print(neighbours_continuity)
 	return neighbours_continuity
 
 def curvature_term(index,neighbours):
@@ -98,15 +101,19 @@ def curvature_term(index,neighbours):
 		y_term = prev[1] + nxt[1] - nei[1]*2
 		curvature = x_term**2 + y_term**2
 		neighbours_curvature.append(curvature)
+	#print(neighbours_curvature)
 	return neighbours_curvature
 
 def image_term(strength,neighbours):
-	neighbours_strength = [strength[nei[0],nei[1]] for nei in neighbours]
+	#print(strength)
+	neighbours_strength = list(strength[nei[0],nei[1]] for nei in neighbours)
+	#print(neighbours_strength)
 	maxVal = max(neighbours_strength)
 	minVal = min(neighbours_strength)
 	if(maxVal - minVal) < 5:
 		minVal = maxVal - 5
-	neighbours_image = [(minVal - strength[nei[0],nei[1]])/(maxVal-minVal) for nei in neighbours]
+	neighbours_image = list((minVal - strength[nei[0],nei[1]])/(maxVal-minVal) for nei in neighbours)
+	#print(neighbours_image)
 	return neighbours_image
 
 def maximum_curvature(ind):
@@ -137,7 +144,6 @@ def greedy_contours(img,strength):
 	count = 0
 	while True:
 		ptsmoved = 0
-		print(points)
 		for i in range(num_points):
 			average_dist()
 			min_energy = inf
@@ -147,21 +153,22 @@ def greedy_contours(img,strength):
 			neighbours_image = image_term(strength,neighbours)
 			cur_point = points[i]
 			cur_energy = 0
-			min_point = cur_point
+			#print(beta[i])
 			for j in range(len(neighbours)):
-				energy_j = alpha * neighbours_continuity[j]/max(neighbours_continuity) + beta[i] * neighbours_curvature[j]/max(neighbours_curvature) + gamma * neighbours_image[j]/max(neighbours_image)
+				energy_j = alpha * neighbours_continuity[j]/max(neighbours_continuity) + beta[i] * neighbours_curvature[j]/max(neighbours_curvature) + gamma * neighbours_image[j]
 				if neighbours[j] == cur_point:
 					cur_energy = energy_j
-				if(energy_j < min_energy):
+				if energy_j < min_energy:
 					min_point = neighbours[j]
 					min_energy = energy_j
-			
-			if min_point != cur_point and min_energy < cur_energy:
+			#print(cur_energy)
+			#print(min_energy)
+			if min_point != cur_point and min_energy != cur_energy:
 				points[i] = min_point
 				ptsmoved += 1
 		print(ptsmoved)
 		count += 1
-		if count %5 == 0:
+		if count %20 == 0:
 			display_contour(img)
 
 		for i in range(num_points):
@@ -174,17 +181,19 @@ def greedy_contours(img,strength):
 			if cur > prev and cur > nxt and cur > 0.3 and strength[points[i][0],points[i][1]] > 10:
 				beta[i] = 0
 
-		# if ptsmoved < 0.1 * num_points:
-		# 	break
+		if ptsmoved < 0.1 * num_points:
+			break
 		
 
 
 if __name__ == "__main__":
-	img = cv2.imread("Images1through8/image1.jpg",0)
-	img = ndimage.gaussian_filter(img,1)
-	strength = img_strength(img)
+	img = cv2.imread("Images1through8/image3.jpg",0)
+	strength = img_strength(img,3)
 
 	get_points(img)
 	interpolate()
+
 	greedy_contours(img,strength)
+	print("Complete!")
+	display_contour(img)
 	

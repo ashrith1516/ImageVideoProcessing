@@ -14,8 +14,8 @@ avg_dist = 0
 def img_strength(img,sigma):
 	res = ndimage.gaussian_filter(img.astype(float),3)
 	jx,jy = np.gradient(res)
-	#print(jx)
-	#print(jy)
+	
+	
 	img_str = np.sqrt(np.square(jx) + np.square(jy))
 	return img_str
 
@@ -23,7 +23,6 @@ def img_strength(img,sigma):
 def onclick(event):
     global ix, iy
     ix, iy = int(event.xdata), int(event.ydata)
-    # #print(ix, iy)
     plt.scatter([ix], [iy], s = 2, c='r')
     plt.draw()
     global points
@@ -32,6 +31,7 @@ def onclick(event):
 def get_points(image):
 	fig = plt.figure('ACTIVE CONTOURS')
 	plt.gray()
+	plt.axis("off")
 	plt.imshow(image)
 	cid = fig.canvas.mpl_connect('button_press_event', onclick)
 	plt.show()
@@ -60,6 +60,7 @@ def interpolate():
 def display_contour(img):
 	global points
 	plt.gray()
+	plt.axis("off")
 	plt.imshow(img)
 	for point in points:
 		plt.scatter(point[1],point[0],s=2,c='r')
@@ -79,21 +80,22 @@ def average_dist():
 		d += hypot(nxt_point[0]-point[0],nxt_point[1]-point[1])
 	avg_dist = d/num_points
 
-def get_neighbours(index):
+def get_neighbours(index,neigh_size):
 	global points
+	offset = neigh_size//2
 	center = points[index]
-	neighbours = [(center[0]+x,center[1]+y) for x in range(-1,2) for y in range(-1,2)]
-	#print(points[index])
+	neighbours = [(center[0]+x,center[1]+y) for x in range(-offset,offset+1) for y in range(-offset,offset+1)]
+	
 	return neighbours
 
 def continuity_term(index,neighbours):
 	global points
 	global avg_dist
-	#print(avg_dist)
+	
 	num_points = len(points)
 	prev = points[(index-1)%num_points]
 	neighbours_continuity = [fabs(avg_dist-hypot(nei[0]-prev[0],nei[1]-prev[1])) for nei in neighbours]
-	#print(neighbours_continuity)
+	
 	return neighbours_continuity
 
 def curvature_term(index,neighbours):
@@ -107,19 +109,19 @@ def curvature_term(index,neighbours):
 		y_term = prev[1] + nxt[1] - nei[1]*2
 		curvature = x_term**2 + y_term**2
 		neighbours_curvature.append(curvature)
-	#print(neighbours_curvature)
+	
 	return neighbours_curvature
 
 def image_term(strength,neighbours):
-	#print(strength)
+	
 	neighbours_strength = list(strength[nei[0],nei[1]] for nei in neighbours)
-	#print(neighbours_strength)
+	
 	maxVal = max(neighbours_strength)
 	minVal = min(neighbours_strength)
 	if(maxVal - minVal) < 5:
 		minVal = maxVal - 5
 	neighbours_image = list((minVal - strength[nei[0],nei[1]])/(maxVal-minVal) for nei in neighbours)
-	#print(neighbours_image)
+	
 	return neighbours_image
 
 def maximum_curvature(ind):
@@ -151,19 +153,19 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 	curvature = [0]*num_points
 	count = 0
 	prev_ptsmoved = 0
-	repeat = False
+	repeat = 0
 	while True:
 		ptsmoved = 0
 		for i in range(num_points):
 			average_dist()
 			min_energy = inf
-			neighbours = get_neighbours(i)
+			neighbours = get_neighbours(i,neigh_size)
 			neighbours_continuity = continuity_term(i,neighbours)
 			neighbours_curvature = curvature_term(i,neighbours)
 			neighbours_image = image_term(strength,neighbours)
 			cur_point = points[i]
 			cur_energy = 0
-			#print(beta[i])
+			
 			for j in range(len(neighbours)):
 				energy_j = alpha[i] * neighbours_continuity[j]/max(neighbours_continuity) + beta[i] * neighbours_curvature[j]/max(neighbours_curvature) + gamma[i] * neighbours_image[j]
 				if neighbours[j] == cur_point:
@@ -171,18 +173,14 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 				if energy_j < min_energy:
 					min_point = neighbours[j]
 					min_energy = energy_j
-			#print(cur_energy)
-			#print(min_energy)
+			
+			
 			if min_point != cur_point and min_energy != cur_energy:
 				points[i] = min_point
 				ptsmoved += 1
-		print("Points moved - " + str(ptsmoved))
+		
 		count += 1
 		if count %20 == 0:
-			if prev_ptsmoved == ptsmoved:
-				repeat = True
-			else:
-				prev_ptsmoved = ptsmoved
 			display_contour(img)
 
 		for i in range(num_points):
@@ -195,8 +193,12 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 			if cur > prev and cur > nxt and cur > curv_threshold and strength[points[i][0],points[i][1]] > strength_threshold:
 				beta[i] = 0
 				corners.append(points[i])
-
-		if ptsmoved < pts_threshold * num_points or repeat:
+		
+		if prev_ptsmoved == ptsmoved:
+			repeat += 1
+		
+		prev_ptsmoved = ptsmoved
+		if ptsmoved < pts_threshold * num_points or repeat >= 40:
 			break
 		
 def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,curv_threshold=0.3,strength_threshold=10,pts_threshold=0.1):
@@ -217,17 +219,17 @@ def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,
 			print("Completed " + images[i])
 			display_contour(image)
 	else:
-		img = cv2.imread(filepath,0)
-		strength = img_strength(img,sigma)
+		image = cv2.imread(filepath,0)
+		strength = img_strength(image,sigma)
 
-		get_points(img)
+		get_points(image)
 		interpolate()
 
-		greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold)
-		print("Complete!")
-		display_contour(img)
+		greedy_contours(image,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold)
+		print("Completed "+ img)
+		display_contour(image)
 
 
 
 if __name__ == "__main__":
-	active_contours("Sequence2")
+	active_contours("Images1through8/image1.jpg")

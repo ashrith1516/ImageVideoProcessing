@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from scipy import ndimage,signal
 from operator import itemgetter
 from math import hypot,fabs,inf
+import os
+import sys
 import cv2
 
 points = []
@@ -159,6 +161,7 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 			neighbours_image = image_term(strength,neighbours)
 			cur_point = points[i]
 			cur_energy = 0
+
 			#print(beta[i])
 			for j in range(len(neighbours)):
 				energy_j = alpha[i] * neighbours_continuity[j]/max(neighbours_continuity) + beta[i] * neighbours_curvature[j]/max(neighbours_curvature) + gamma[i] * neighbours_image[j]
@@ -192,15 +195,34 @@ def greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_th
 			break
 		
 def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,curv_threshold=0.3,strength_threshold=10,pts_threshold=0.1):
-	img = cv2.imread(img,0)
-	strength = img_strength(img,sigma)
+	filepath = sys.path[0] + "\\" + img
+	if os.path.isdir(filepath):
+		files = os.listdir(filepath)
+		images = [(filepath + "\\" + temp) for temp in files]
+		print(images)
+		for i in range(len(images)):
+			global corners
+			corners = []
+			image = cv2.imread(images[i],0)
+			if i == 0:
+				get_points(image)
+				interpolate()
+			strength = img_strength(image,sigma)
+			greedy_contours(image,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold)
+			print("Completed " + images[i])
+			display_contour(image)
+	else:
+		img = cv2.imread(filepath,0)
+		strength = img_strength(img,sigma)
 
-	get_points(img)
-	interpolate()
+		get_points(img)
+		interpolate()
 
-	greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold)
-	print("Complete!")
-	display_contour(img)
+		greedy_contours(img,strength,alpha_val,beta_val,gamma_val,neigh_size,curv_threshold,strength_threshold,pts_threshold)
+		print("Complete!")
+		display_contour(img)
+
+
 
 if __name__ == "__main__":
-	active_contours("Images1through8/image3.jpg")
+	active_contours("Images1through8/image1.jpg")

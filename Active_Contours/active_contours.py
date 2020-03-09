@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage,signal
+from scipy import ndimage
 from operator import itemgetter
 from math import hypot,fabs,inf
 import os
@@ -295,3 +295,13 @@ def active_contours(img,sigma=3,alpha_val=1,beta_val=1,gamma_val=1,neigh_size=9,
 #TEST CASES
 if __name__ == "__main__":
 	active_contours("Images1through8/image1.jpg")
+	# active_contours("Images1through8/image1.jpg",alpha_val=2)
+	# active_contours("Images1through8/image1.jpg",alpha_val=3)
+	# active_contours("Images1through8/image1.jpg",beta_val=2)
+	# active_contours("Images1through8/image1.jpg",beta_val=3)
+	# active_contours("Images1through8/image1.jpg",gamma_val=2)
+	# active_contours("Images1through8/image1.jpg",gamma_val=3)
+	# active_contours("Images1through8/image1.jpg",neigh_size=25)
+	# active_contours("Images1through8/image1.jpg",pts_threshold=0.2)
+	# active_contours("Images1through8/image1.jpg",pts_threshold=0.3)
+	# active_contours("Sequence1")

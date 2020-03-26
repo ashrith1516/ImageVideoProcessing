@@ -77,7 +77,7 @@ class Training:
 	#Find top n eigenvectors that become the face space - eigenfaces
 	def find_eigenfaces(self,n):
 		eValues = np.array(self.eigenvalues, dtype='int32')
-		eFaces = [y for x,y in sorted(zip(eValues,self.eigenvectors),key=lambda x:abs(x[0]))] #abs is used since there maybe high negative value eigenvalues
+		eFaces = [y for x,y in sorted(zip(eValues,self.eigenvectors),key=lambda x:x[0])] 
 		self.eigenfaces = eFaces[-n:]
 		self.eigenfaces = np.array(preprocessing.normalize(self.eigenfaces, axis=1, norm='l2'))
 

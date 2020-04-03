@@ -13,6 +13,7 @@ from scipy.spatial import distance
 from skimage import io
 from skimage.morphology import square
 
+#Structure for holding a codeword
 class Codeword:
 	def __init__(self,vector,aux):
 		self.vector = vector
@@ -114,6 +115,10 @@ def detect_foreground(image,code_book,eps2,alpha,beta):
 			output [i,j] = 0 if match else 255
 	return output
 
+def morph(image):
+	opening = ndimage.grey_opening(image,size=(3,3))
+	closing = ndimage.grey_closing(image,size=(2,2))
+	return closing
 
 if __name__=="__main__":
 	alpha = 0.7
@@ -129,6 +134,7 @@ if __name__=="__main__":
 		fat_codebook,num_frames = construct_codebook(path,eps1,alpha,beta)
 		code_book = temporal_filtering(path,fat_codebook,num_frames)
 	
-	background = detect_foreground("testing/PetsD2TeC1_00530.jpg",code_book,eps2,alpha,beta)
-	plt.imshow(background,cmap='gray')
+	foreground = detect_foreground("testing/PetsD2TeC1_00580.jpg",code_book,eps2,alpha,beta)
+	result = morph(foreground)
+	plt.imshow(result,cmap='gray')
 	plt.show()

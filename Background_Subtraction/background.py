@@ -1,5 +1,5 @@
 import pickle
-from math import fabs, hypot, inf, pi, sqrt
+from math import sqrt
 from os import listdir
 from os.path import isfile, join
 
@@ -122,8 +122,9 @@ def morph(image):
 	return closing
 
 #Function to display output images
-def display_output(img1,img2):
+def display_output(img1,img2,title):
 	fig = plt.figure()
+	fig.suptitle(title)
 	first = fig.add_subplot(1,2,1)
 	first.set_title("Original image")
 	first.axis('off')
@@ -146,13 +147,19 @@ def codebook_bgs(path,image,eps1=300,eps2=300,alpha=0.7,beta=1.2,morphological=T
 		code_book = temporal_filtering(path,fat_codebook,num_frames)
 
 	foreground = detect_foreground(image,code_book,eps2,alpha,beta)
+	display_output(img,foreground,"No Morph")
 	if morphological:
 		foreground = morph(foreground)
 
-	display_output(img,foreground)	
+	display_output(img,foreground,"Morphed")	
 
 
 
 if __name__=="__main__":
+	codebook_bgs("training","testing/PetsD2TeC1_00304.jpg")
+	codebook_bgs("training","testing/PetsD2TeC1_00420.jpg")
 	codebook_bgs("training","testing/PetsD2TeC1_00580.jpg")
+	codebook_bgs("training","testing/PetsD2TeC1_00675.jpg")
+	codebook_bgs("training","testing/PetsD2TeC1_00750.jpg")
+
 	

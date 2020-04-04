@@ -2,10 +2,8 @@ import pickle
 from math import sqrt
 from os import listdir
 from os.path import isfile, join
-
 import matplotlib.pyplot as plt
 import numpy as np
-
 from scipy import ndimage
 from skimage import io
 
@@ -72,8 +70,8 @@ def construct_codebook(path,eps1,alpha,beta):
 					vl = xt
 					auxl = [I, I, 1, t - 1, t, t]
 					code_book[i,j].append(Codeword(vl,auxl))
-				#print(len(code_book[i,j]))
-		
+				
+		#Update maximum negative run length for frame
 		if t == len(frames):
 			for cw in code_book[i, j]:
 				auxi = cw.aux
@@ -90,6 +88,8 @@ def temporal_filtering(path,code_book,num_frames):
 				if code.aux[3] <= M:
 					filtered_codes.append(code)
 			code_book[i,j] = filtered_codes
+
+	#Serialize the codebook for faster processing the next time
 	cwfile = open(path+".code",'wb')
 	pickle.dump(code_book,cwfile)
 	cwfile.close()
@@ -138,6 +138,7 @@ def display_output(img1,img2,title):
 #Function to implement Background subtraction using codebook algorithm
 def codebook_bgs(path,image,eps1=300,eps2=300,alpha=0.7,beta=1.2,morphological=True):
 	img = io.imread(image)
+	#Check if the training has already been done. If yes, fetch the serialized file
 	if isfile(path+".code"):
 		cwfile = open(path+".code",'rb')
 		code_book = pickle.load(cwfile,encoding='bytes')

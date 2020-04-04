@@ -1,4 +1,3 @@
-import time
 import pickle
 from math import fabs, hypot, inf, pi, sqrt
 from os import listdir
@@ -6,12 +5,10 @@ from os.path import isfile, join
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy import linalg as LA
-from scipy import ndimage, signal, misc
-from scipy.linalg import eigh as largest_eigh
-from scipy.spatial import distance
+
+from scipy import ndimage
 from skimage import io
-from skimage.morphology import square
+
 
 #Structure for holding a codeword
 class Codeword:
@@ -19,6 +16,7 @@ class Codeword:
 		self.vector = vector
 		self.aux = aux
 
+#Obtain color distance between a pixel's color and RGB values of a codeword
 def colordist(xt,vi):
 	xt_sqrd = np.sum(np.array(xt)**2)
 	vi_sqrd = np.sum(np.array(vi)**2)
@@ -27,6 +25,7 @@ def colordist(xt,vi):
 	dist = np.sqrt(xt_sqrd - p_sqrd) if xt_sqrd - p_sqrd >= 0 else 0
 	return dist
 
+#Check if brightness change is within limits
 def brightness(I, aux, alpha, beta):
     Imin = aux[0]
     Imax = aux[1]
@@ -36,6 +35,7 @@ def brightness(I, aux, alpha, beta):
         return True
     return False
 
+#Construction of the fat codebook
 def construct_codebook(path,eps1,alpha,beta):
 	
 	frames = [join(path, img) for img in listdir(path) if isfile(join(path, img))]
@@ -54,9 +54,7 @@ def construct_codebook(path,eps1,alpha,beta):
 				R = img[i,j,0]
 				G = img[i,j,1]
 				B = img[i,j,2]
-				# print(R)
-				# print(G)
-				# print(B)
+
 				xt = [R,G,B]
 				I = sqrt(R**2+G**2+B**2)
 				match = False
@@ -75,13 +73,14 @@ def construct_codebook(path,eps1,alpha,beta):
 					auxl = [I, I, 1, t - 1, t, t]
 					code_book[i,j].append(Codeword(vl,auxl))
 				#print(len(code_book[i,j]))
-
+		
 		if t == len(frames):
 			for cw in code_book[i, j]:
 				auxi = cw.aux
 				cw.aux[3] = max(auxi[3], len(frames)-auxi[5]+auxi[4]-1)
 	return code_book,len(frames)
 
+#Filter the fat codebook to contain background pixels
 def temporal_filtering(path,code_book,num_frames):
 	M = num_frames//2
 	for i in range(code_book.shape[0]):
@@ -96,8 +95,9 @@ def temporal_filtering(path,code_book,num_frames):
 	cwfile.close()
 	return code_book
 
+#Detect foreground pixels of an image
 def detect_foreground(image,code_book,eps2,alpha,beta):
-	img = io.imread(image)
+	img = io.imread(image)	
 	output = np.zeros_like(io.imread(image,as_gray=True))
 
 	for i in range(code_book.shape[0]):
@@ -109,23 +109,34 @@ def detect_foreground(image,code_book,eps2,alpha,beta):
 			I = sqrt(R**2+G**2+B**2)
 			match = False
 			for code in code_book[i,j]:
-				if colordist(xt,code.vector) <= eps1 and brightness(I,code.aux,alpha,beta):
+				if colordist(xt,code.vector) <= eps2 and brightness(I,code.aux,alpha,beta):
 					match = True
 					break
 			output [i,j] = 0 if match else 255
 	return output
 
+#Morpholigical operation - Closing of the Opening
 def morph(image):
 	opening = ndimage.grey_opening(image,size=(3,3))
 	closing = ndimage.grey_closing(image,size=(2,2))
 	return closing
 
-if __name__=="__main__":
-	alpha = 0.7
-	beta = 1.2
-	eps1 = 300
-	eps2 = 300
-	path = "training"
+#Function to display output images
+def display_output(img1,img2):
+	fig = plt.figure()
+	first = fig.add_subplot(1,2,1)
+	first.set_title("Original image")
+	first.axis('off')
+	io.imshow(img1)
+	second = fig.add_subplot(1,2,2)
+	second.set_title("Foreground image")
+	second.axis('off')
+	io.imshow(img2,cmap='gray')
+	plt.show()
+
+#Function to implement Background subtraction using codebook algorithm
+def codebook_bgs(path,image,eps1=300,eps2=300,alpha=0.7,beta=1.2,morphological=True):
+	img = io.imread(image)
 	if isfile(path+".code"):
 		cwfile = open(path+".code",'rb')
 		code_book = pickle.load(cwfile,encoding='bytes')
@@ -133,8 +144,15 @@ if __name__=="__main__":
 	else:
 		fat_codebook,num_frames = construct_codebook(path,eps1,alpha,beta)
 		code_book = temporal_filtering(path,fat_codebook,num_frames)
+
+	foreground = detect_foreground(image,code_book,eps2,alpha,beta)
+	if morphological:
+		foreground = morph(foreground)
+
+	display_output(img,foreground)	
+
+
+
+if __name__=="__main__":
+	codebook_bgs("training","testing/PetsD2TeC1_00580.jpg")
 	
-	foreground = detect_foreground("testing/PetsD2TeC1_00580.jpg",code_book,eps2,alpha,beta)
-	result = morph(foreground)
-	plt.imshow(result,cmap='gray')
-	plt.show()

@@ -1,11 +1,4 @@
-import pickle
-from math import sqrt
-from os import listdir
-from os.path import isfile, join
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy import ndimage
-from skimage import io
+py
 
 
 #Structure for holding a codeword
@@ -136,7 +129,7 @@ def display_output(img1,img2,title):
 	plt.show()
 
 #Function to implement Background subtraction using codebook algorithm
-def codebook_bgs(path,image,eps1=300,eps2=300,alpha=0.7,beta=1.2,morphological=True):
+def codebook_bgs(path,image,eps1=300,eps2=400,alpha=0.7,beta=1.2,morphological=True):
 	img = io.imread(image)
 	#Check if the training has already been done. If yes, fetch the serialized file
 	if isfile(path+".code"):
